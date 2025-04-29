@@ -157,7 +157,7 @@ export type BaseNativeFilterDesc = {
     tabsInScope: string[]
 }
 
-export type ExtraFormDataSelect = {
+export type SelectExtraFormData = {
     filters: Array<{
         col: string
         op: string
@@ -181,13 +181,13 @@ export type SelectNativeFilterDesc = {
         searchAllOptions: boolean
     }
     defaultDataMask: {
-        extraFormData: ExtraFormDataSelect
+        extraFormData: SelectExtraFormData
         filterState: SelectFilterState
     }
     filterType: 'filter_select'
 } & BaseNativeFilterDesc
 
-export type ExtraFormDataTime = {
+export type TimeExtraFormData = {
     time_range?: string
 }
 export type TimeFilterState = {
@@ -199,13 +199,13 @@ export type TimeNativeFilterDesc = {
         enableEmptyFilter: boolean
     }
     defaultDataMask: {
-        extraFormData: ExtraFormDataTime
+        extraFormData: TimeExtraFormData
         filterState: TimeFilterState
     }
     filterType: 'filter_time'
 } & BaseNativeFilterDesc
 
-export type ExtraFormDataRange = {
+export type RangeExtraFormData = {
     filters: Array<{
         col: string
         op: string
@@ -220,13 +220,13 @@ export type RangeNativeFilterDesc = {
         enableEmptyFilter: boolean
     }
     defaultDataMask: {
-        extraFormData: ExtraFormDataRange
+        extraFormData: RangeExtraFormData
         filterState: RangeFilterState
     }
     filterType: 'filter_range'
 } & BaseNativeFilterDesc
 
-export type ExtraFormDataTimegrain = {
+export type TimegrainExtraFormData = {
     time_grain_sqla: string
 }
 export type TimegrainFilterState = {
@@ -237,14 +237,31 @@ export type TimegrainNativeFilterDesc = {
         enableEmptyFilter: boolean
     }
     defaultDataMask: {
-        extraFormData: ExtraFormDataTimegrain
+        extraFormData: TimegrainExtraFormData
         filterState: TimegrainFilterState
     }
     filterType: 'filter_timegrain'
 } & BaseNativeFilterDesc
 
-export type NativeFilterDesc = SelectNativeFilterDesc | TimeNativeFilterDesc | RangeNativeFilterDesc | TimegrainNativeFilterDesc
-    | (BaseNativeFilterDesc & { filterType: Exclude<FilterType, 'filter_time' | 'filter_select' | 'filter_range' | 'filter_timegrain'>  })
+export type TimecolumnExtraFormData = {
+    granularity_sqla: string
+}
+export type TimecolumnFilterState = {
+    value: [string]
+}
+export type TimecolumnNativeFilterDesc = {
+    controlValues: {
+        enableEmptyFilter: boolean
+    }
+    defaultDataMask: {
+        extraFormData: TimecolumnExtraFormData
+        filterState: TimecolumnFilterState
+    }
+    filterType: 'filter_timecolumn'
+} & BaseNativeFilterDesc
+
+export type NativeFilterDesc = SelectNativeFilterDesc | TimeNativeFilterDesc | RangeNativeFilterDesc
+    | TimegrainNativeFilterDesc | TimecolumnNativeFilterDesc
 
 
 export function mkFilters(descs: NativeFilterDesc[]): Record<string, NativeFilter> {
@@ -273,7 +290,7 @@ export function mkFilters(descs: NativeFilterDesc[]): Record<string, NativeFilte
                 extraFormData: deepClone(desc.defaultDataMask.extraFormData),
                 filterState: deepClone(desc.defaultDataMask.filterState),
                 ownState: {},
-            }
+            } satisfies RangeNativeFilter
         }
         else if(desc.filterType === 'filter_timegrain') {
             res[desc.id] = {
@@ -281,7 +298,18 @@ export function mkFilters(descs: NativeFilterDesc[]): Record<string, NativeFilte
                 extraFormData: deepClone(desc.defaultDataMask.extraFormData),
                 filterState: deepClone(desc.defaultDataMask.filterState),
                 ownState: {},
-            }
+            } satisfies TimegrainNativeFilter
+        }
+        else if(desc.filterType === 'filter_timecolumn') {
+            res[desc.id] = {
+                id: desc.id,
+                extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+                filterState: deepClone(desc.defaultDataMask.filterState),
+                ownState: {},
+            } satisfies TimecolumnNativeFilter
+        }
+        else {
+            console.warn('Unknown filter type:', (desc as any).filterType)
         }
     }
     return res
@@ -396,35 +424,55 @@ export function timegrainWithValue(
     }
 }
 
+// not tested
+export function timecolumnWithValue(
+    desc: TimecolumnNativeFilterDesc,
+    filter: TimecolumnNativeFilter,
+    columnName: string,
+): TimecolumnNativeFilter {
+    return {
+        ...filter,
+        extraFormData: { granularity_sqla: columnName },
+        filterState: { value: [columnName] },
+    }
+}
+
 export type BaseNativeFilter = {
     id: string
 }
 
 export type SelectNativeFilter = {
-    extraFormData: ExtraFormDataSelect
+    extraFormData: SelectExtraFormData
     filterState: SelectFilterState | {}
     ownState: {}
 } & BaseNativeFilter
 
 export type TimeNativeFilter = {
-    extraFormData: ExtraFormDataTime
+    extraFormData: TimeExtraFormData
     filterState: TimeFilterState | {}
     ownState: {}
 } & BaseNativeFilter
 
 export type RangeNativeFilter = {
-    extraFormData: ExtraFormDataRange
+    extraFormData: RangeExtraFormData
     filterState: RangeFilterState | {}
     ownState: {}
 } & BaseNativeFilter
 
 export type TimegrainNativeFilter = {
-    extraFormData: ExtraFormDataTimegrain
+    extraFormData: TimegrainExtraFormData
     filterState: TimegrainFilterState | {}
     ownState: {}
 } & BaseNativeFilter
 
-export type NativeFilter = SelectNativeFilter | TimeNativeFilter | RangeNativeFilter | TimegrainNativeFilter | BaseNativeFilter
+export type TimecolumnNativeFilter = {
+    extraFormData: TimecolumnExtraFormData
+    filterState: TimecolumnFilterState | {}
+    ownState: {}
+} & BaseNativeFilter
+
+export type NativeFilter = SelectNativeFilter | TimeNativeFilter | RangeNativeFilter
+    | TimegrainNativeFilter | TimecolumnNativeFilter
 
 // NOTE: desc.controlValues.enableEmptyFilter === required. Why meaning is opposite?
 

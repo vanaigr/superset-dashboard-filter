@@ -7,13 +7,13 @@ const filtersDesc = await F.getDashboardFiltersDesc(ctx, dashboard)
 const filters = F.mkFilters(filtersDesc)
 
 // select filter
-if(false) {
+{
     const desc = filtersDesc.find(it => it.name === 'Country')! as F.SelectNativeFilterDesc
     filters[desc.id] = F.selectWithIncludedValue(desc, filters[desc.id] as F.SelectNativeFilter, ['Austria', 'Japan'])
 }
 
 // time range filter
-if(false) {
+{
     const desc = filtersDesc.find(it => it.name === 'Time Range')! as F.TimeNativeFilterDesc
     //filters[desc.id] = F.timeWithBuiltinValue(desc, filters[desc.id] as F.TimeNativeFilter, F.timeFilterValues.lastDay)
     filters[desc.id] = F.timeWithDateRange(
@@ -25,7 +25,7 @@ if(false) {
 }
 
 // numeric range filter
-if(false) {
+{
     const desc = filtersDesc.find(it => it.name === 'Order Quantity')! as F.RangeNativeFilterDesc
     filters[desc.id] = F.rangeWithBounds(
         desc,
