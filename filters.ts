@@ -129,7 +129,10 @@ function getSessionCookie(resp: Response) {
 function deepClone<T>(it: T) {
     return JSON.parse(JSON.stringify(it))
 }
-
+function dateStr(it: Date) {
+    const s = it.toISOString()
+    return s.substring(0, s.length - 1)
+}
 
 export type FilterType = 'filter_range' | 'filter_select' | 'filter_time' | 'filter_timegrain' | 'filter_timecolumn'
 
@@ -212,7 +215,7 @@ export type RangeExtraFormData = {
     }>
 }
 export type RangeFilterState = {
-    value: [number, number]
+    value: [number | null, number | null]
 }
 export type RangeNativeFilterDesc = {
     controlValues: {
@@ -363,19 +366,19 @@ export function timeWithBuiltinValue(
         },
     }
 }
-/// NOTE: date values are extracted in UTC.
-/// NOTE: range is end-exclusive
+/**
+    `Date` values are extracted to strings in UTC. String format is 'YYYY-MM-DDTHH:mm:ss',
+    but you can also use strings like 'DATEADD(DATETIME("2025-04-28T00:00:00"), -7, day)'.
+    Range is end-exclusive.
+*/
 export function timeWithDateRange(
     desc: TimeNativeFilterDesc,
     filter: TimeNativeFilter,
-    beginDate: Date,
-    endDate: Date,
+    beginDate: Date | string,
+    endDate: Date | string,
 ): TimeNativeFilter {
-    let b = beginDate.toISOString()
-    b = b.substring(0, b.length - 1)
-
-    let e = endDate.toISOString()
-    e = e.substring(0, e.length - 1)
+    const b = beginDate instanceof Date ? dateStr(beginDate) : beginDate
+    let e = endDate instanceof Date ? dateStr(endDate) : endDate
 
     const range = b + ' : ' + e
 
@@ -411,7 +414,7 @@ export function timeDefaultValue(
     }
 }
 
-// bounds are inclusive
+/** Bounds are inclusive. */
 export function rangeWithBounds(
     desc: RangeNativeFilterDesc,
     filter: RangeNativeFilter,
@@ -490,7 +493,7 @@ export function timegrainDefaultValue(
     }
 }
 
-// not tested
+/** not tested */
 export function timecolumnWithValue(
     desc: TimecolumnNativeFilterDesc,
     filter: TimecolumnNativeFilter,

@@ -19,8 +19,8 @@ const filters = F.mkFilters(filtersDesc)
     filters[desc.id] = F.timeWithDateRange(
         desc,
         filters[desc.id] as F.TimeNativeFilter,
-        new Date('2003-10-03T00:00:00Z'), // NOTE: dates are accepted in UTC
-        new Date('2004-06-28T00:00:00Z'),
+        '2003-10-03T00:00:00',
+        '2004-06-28T00:00:00',
     )
 }
 
