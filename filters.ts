@@ -1,5 +1,4 @@
 import fetch, { type Response } from 'node-fetch';
-/** @imort { NativeFilter } from './types.d.ts' */
 
 export type Context = {
     base: URL
@@ -227,7 +226,7 @@ export type RangeNativeFilterDesc = {
 } & BaseNativeFilterDesc
 
 export type TimegrainExtraFormData = {
-    time_grain_sqla: string
+    time_grain_sqla?: string
 }
 export type TimegrainFilterState = {
     value: string
@@ -244,7 +243,7 @@ export type TimegrainNativeFilterDesc = {
 } & BaseNativeFilterDesc
 
 export type TimecolumnExtraFormData = {
-    granularity_sqla: string
+    granularity_sqla?: string
 }
 export type TimecolumnFilterState = {
     value: [string]
@@ -269,20 +268,10 @@ export function mkFilters(descs: NativeFilterDesc[]): Record<string, NativeFilte
     for(let i = 0; i < descs.length; i++) {
         const desc = descs[i]
         if(desc.filterType === 'filter_select') {
-            res[desc.id] = {
-                id: desc.id,
-                extraFormData: deepClone(desc.defaultDataMask.extraFormData),
-                filterState: deepClone(desc.defaultDataMask.filterState),
-                ownState: {},
-            } satisfies SelectNativeFilter
+            res[desc.id] = selectDefaultValue(desc)
         }
         else if(desc.filterType === 'filter_time') {
-            res[desc.id] = {
-                id: desc.id,
-                extraFormData: deepClone(desc.defaultDataMask.extraFormData),
-                filterState: deepClone(desc.defaultDataMask.filterState),
-                ownState: {},
-            } satisfies TimeNativeFilter
+            res[desc.id] = timeDefaultValue(desc)
         }
         else if(desc.filterType === 'filter_range') {
             res[desc.id] = {
@@ -339,6 +328,24 @@ export function selectWithIncludedValue(
         },
     }
 }
+export function selectWithNoValue(
+    desc: SelectNativeFilterDesc,
+    filter: SelectNativeFilter,
+): SelectNativeFilter {
+    return {
+        ...filter,
+        extraFormData: { filters: [] },
+        filterState: {},
+    }
+}
+export function selectDefaultValue(desc: SelectNativeFilterDesc): SelectNativeFilter {
+    return {
+        id: desc.id,
+        extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+        filterState: deepClone(desc.defaultDataMask.filterState),
+        ownState: {},
+    }
+}
 
 
 export function timeWithBuiltinValue(
@@ -356,7 +363,6 @@ export function timeWithBuiltinValue(
         },
     }
 }
-
 /// NOTE: date values are extracted in UTC.
 /// NOTE: range is end-exclusive
 export function timeWithDateRange(
@@ -382,6 +388,26 @@ export function timeWithDateRange(
             ...filter.filterState,
             value: range,
         },
+    }
+}
+export function timeWithNoValue(
+    desc: TimeNativeFilterDesc,
+    filter: TimeNativeFilter,
+): TimeNativeFilter {
+    return {
+        ...filter,
+        extraFormData: {},
+        filterState: {},
+    }
+}
+export function timeDefaultValue(
+    desc: TimeNativeFilterDesc
+): TimeNativeFilter {
+    return {
+        id: desc.id,
+        extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+        filterState: deepClone(desc.defaultDataMask.filterState),
+        ownState: {},
     }
 }
 
@@ -411,6 +437,26 @@ export function rangeWithBounds(
         },
     }
 }
+export function rangeWithNoValue(
+    desc: RangeNativeFilterDesc,
+    filter: RangeNativeFilter,
+): RangeNativeFilter {
+    return {
+        ...filter,
+        extraFormData: { filters: [] },
+        filterState: {},
+    }
+}
+export function rangeDefaultValue(
+    desc: RangeNativeFilterDesc
+): RangeNativeFilter {
+    return {
+        id: desc.id,
+        extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+        filterState: deepClone(desc.defaultDataMask.filterState),
+        ownState: {},
+    }
+}
 
 export function timegrainWithValue(
     desc: TimegrainNativeFilterDesc,
@@ -421,6 +467,26 @@ export function timegrainWithValue(
         ...filter,
         extraFormData: { time_grain_sqla: value },
         filterState: { value },
+    }
+}
+export function timegrainWithNoValue(
+    desc: TimegrainNativeFilterDesc,
+    filter: TimegrainNativeFilter,
+): TimegrainNativeFilter {
+    return {
+        ...filter,
+        extraFormData: {},
+        filterState: {},
+    }
+}
+export function timegrainDefaultValue(
+    desc: TimegrainNativeFilterDesc
+): TimegrainNativeFilter {
+    return {
+        id: desc.id,
+        extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+        filterState: deepClone(desc.defaultDataMask.filterState),
+        ownState: {},
     }
 }
 
@@ -434,6 +500,26 @@ export function timecolumnWithValue(
         ...filter,
         extraFormData: { granularity_sqla: columnName },
         filterState: { value: [columnName] },
+    }
+}
+export function timecolumnWithNoValue(
+    desc: TimecolumnNativeFilterDesc,
+    filter: TimecolumnNativeFilter,
+): TimecolumnNativeFilter {
+    return {
+        ...filter,
+        extraFormData: {},
+        filterState: {},
+    }
+}
+export function timecolumnDefaultValue(
+    desc: TimecolumnNativeFilterDesc
+): TimecolumnNativeFilter {
+    return {
+        id: desc.id,
+        extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+        filterState: deepClone(desc.defaultDataMask.filterState),
+        ownState: {},
     }
 }
 
