@@ -2,7 +2,7 @@ import * as F from './filters'
 
 const dashboard = '11'
 
-const ctx = await F.logIn('http://localhost:8089', 'admin', 'admin')
+const ctx = await F.logIn('http://localhost:8088', 'admin', 'admin')
 const filtersDesc = await F.getDashboardFiltersDesc(ctx, dashboard)
 const filters = F.mkFilters(filtersDesc)
 
