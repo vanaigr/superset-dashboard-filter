@@ -134,17 +134,6 @@ function deepClone<T>(it: T) {
 
 export type FilterType = 'filter_range' | 'filter_select' | 'filter_time' | 'filter_timegrain' | 'filter_timecolumn'
 
-export type ExtraFormDataV1 = {
-    filters: Array<{
-        col: string
-        op: string
-        val: string[]
-    }>
-}
-export type ExtraFormDataV2 = {
-    time_range?: string
-}
-
 export type BaseNativeFilterDesc = {
     cascadeParentIds: string[]
     //controlValues: unknown
@@ -168,6 +157,13 @@ export type BaseNativeFilterDesc = {
     tabsInScope: string[]
 }
 
+export type ExtraFormDataSelect = {
+    filters: Array<{
+        col: string
+        op: string
+        val: string[]
+    }>
+}
 export type SelectFilterState = {
     // validateStatus: boolean
     // validateMessage: false | string
@@ -185,12 +181,15 @@ export type SelectNativeFilterDesc = {
         searchAllOptions: boolean
     }
     defaultDataMask: {
-        extraFormData: ExtraFormDataV1
+        extraFormData: ExtraFormDataSelect
         filterState: SelectFilterState
     }
     filterType: 'filter_select'
 } & BaseNativeFilterDesc
 
+export type ExtraFormDataTime = {
+    time_range?: string
+}
 export type TimeFilterState = {
     // ...
     value: TimeFilterValues | string
@@ -200,14 +199,52 @@ export type TimeNativeFilterDesc = {
         enableEmptyFilter: boolean
     }
     defaultDataMask: {
-        extraFormData: ExtraFormDataV2
+        extraFormData: ExtraFormDataTime
         filterState: TimeFilterState
     }
     filterType: 'filter_time'
 } & BaseNativeFilterDesc
 
-export type NativeFilterDesc = SelectNativeFilterDesc | TimeNativeFilterDesc
-    | (BaseNativeFilterDesc & { filterType: Exclude<FilterType, 'filter_time' | 'filter_select'>  })
+export type ExtraFormDataRange = {
+    filters: Array<{
+        col: string
+        op: string
+        val: number
+    }>
+}
+export type RangeFilterState = {
+    value: [number, number]
+}
+export type RangeNativeFilterDesc = {
+    controlValues: {
+        enableEmptyFilter: boolean
+    }
+    defaultDataMask: {
+        extraFormData: ExtraFormDataRange
+        filterState: RangeFilterState
+    }
+    filterType: 'filter_range'
+} & BaseNativeFilterDesc
+
+export type ExtraFormDataTimegrain = {
+    time_grain_sqla: string
+}
+export type TimegrainFilterState = {
+    value: string
+}
+export type TimegrainNativeFilterDesc = {
+    controlValues: {
+        enableEmptyFilter: boolean
+    }
+    defaultDataMask: {
+        extraFormData: ExtraFormDataTimegrain
+        filterState: TimegrainFilterState
+    }
+    filterType: 'filter_timegrain'
+} & BaseNativeFilterDesc
+
+export type NativeFilterDesc = SelectNativeFilterDesc | TimeNativeFilterDesc | RangeNativeFilterDesc | TimegrainNativeFilterDesc
+    | (BaseNativeFilterDesc & { filterType: Exclude<FilterType, 'filter_time' | 'filter_select' | 'filter_range' | 'filter_timegrain'>  })
 
 
 export function mkFilters(descs: NativeFilterDesc[]): Record<string, NativeFilter> {
@@ -230,9 +267,26 @@ export function mkFilters(descs: NativeFilterDesc[]): Record<string, NativeFilte
                 ownState: {},
             } satisfies TimeNativeFilter
         }
+        else if(desc.filterType === 'filter_range') {
+            res[desc.id] = {
+                id: desc.id,
+                extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+                filterState: deepClone(desc.defaultDataMask.filterState),
+                ownState: {},
+            }
+        }
+        else if(desc.filterType === 'filter_timegrain') {
+            res[desc.id] = {
+                id: desc.id,
+                extraFormData: deepClone(desc.defaultDataMask.extraFormData),
+                filterState: deepClone(desc.defaultDataMask.filterState),
+                ownState: {},
+            }
+        }
     }
     return res
 }
+
 
 export function selectWithIncludedValue(
     desc: SelectNativeFilterDesc,
@@ -257,6 +311,7 @@ export function selectWithIncludedValue(
         },
     }
 }
+
 
 export function timeWithBuiltinValue(
     desc: TimeNativeFilterDesc,
@@ -302,47 +357,98 @@ export function timeWithDateRange(
     }
 }
 
+// bounds are inclusive
+export function rangeWithBounds(
+    desc: RangeNativeFilterDesc,
+    filter: RangeNativeFilter,
+    min?: number,
+    max?: number
+): RangeNativeFilter {
+    const col = desc.targets[0].column.name
+
+    const filters: RangeNativeFilter['extraFormData']['filters'] = []
+    if(min !== undefined) {
+        filters.push({ col, op: '>=', val: min })
+    }
+    if(max !== undefined) {
+        filters.push({ col, op: '<=', val: max })
+    }
+
+    return {
+        ...filter,
+        extraFormData: { filters },
+        filterState: {
+            value: [min ?? null, max ?? null],
+            excludeFilterValues: false,
+        },
+    }
+}
+
+export function timegrainWithValue(
+    desc: TimegrainNativeFilterDesc,
+    filter: TimegrainNativeFilter,
+    value: TimegrainFilterValues,
+): TimegrainNativeFilter {
+    return {
+        ...filter,
+        extraFormData: { time_grain_sqla: value },
+        filterState: { value },
+    }
+}
+
 export type BaseNativeFilter = {
     id: string
 }
 
 export type SelectNativeFilter = {
-    extraFormData: ExtraFormDataV1
+    extraFormData: ExtraFormDataSelect
     filterState: SelectFilterState | {}
     ownState: {}
 } & BaseNativeFilter
 
 export type TimeNativeFilter = {
-    extraFormData: ExtraFormDataV2
+    extraFormData: ExtraFormDataTime
     filterState: TimeFilterState | {}
     ownState: {}
 } & BaseNativeFilter
 
-export type NativeFilter = SelectNativeFilter | TimeNativeFilter | BaseNativeFilter
+export type RangeNativeFilter = {
+    extraFormData: ExtraFormDataRange
+    filterState: RangeFilterState | {}
+    ownState: {}
+} & BaseNativeFilter
+
+export type TimegrainNativeFilter = {
+    extraFormData: ExtraFormDataTimegrain
+    filterState: TimegrainFilterState | {}
+    ownState: {}
+} & BaseNativeFilter
+
+export type NativeFilter = SelectNativeFilter | TimeNativeFilter | RangeNativeFilter | TimegrainNativeFilter | BaseNativeFilter
 
 // NOTE: desc.controlValues.enableEmptyFilter === required. Why meaning is opposite?
 
 // superset: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts
-export const timeFilterValues = [
+export const timeFilterValues = {
     // Common
-    'Last day',
-    'Last week',
-    'Last month',
-    'Last quarter',
-    'Last year',
+    lastDay: 'Last day',
+    lastWeek: 'Last week',
+    lastMonth: 'Last month',
+    lastQuarter: 'Last quarter',
+    lastYear: 'Last year',
 
     // Calendar
-    'previous calendar week',
-    'previous calendar month',
-    'previous calendar quarter',
-    'previous calendar year',
+    previousCalendarWeek: 'previous calendar week',
+    previousCalendarMonth: 'previous calendar month',
+    previousCalendarQuarter: 'previous calendar quarter',
+    previousCalendarYear: 'previous calendar year',
 
     // Current
-    'Current day',
-    'Current week',
-    'Current month',
-    'Current year',
-    'Current quarter',
+    currentDay: 'Current day',
+    currentWeek: 'Current week',
+    currentMonth: 'Current month',
+    currentYear: 'Current year',
+    currentQuarter: 'Current quarter',
 
     // Custom & Advanced
     // '2020-01-23T18:41:12 : 2020-01-24T00:00:00'
@@ -350,8 +456,35 @@ export const timeFilterValues = [
 
     // No filter
     // undefined
-] as const
-export type TimeFilterValues = typeof timeFilterValues[number]
+} as const
+export type TimeFilterValues = typeof timeFilterValues[keyof typeof timeFilterValues]
+
+// superset/constants.py
+export const timegrainFilterValues = {
+    second: "PT1S",
+    fiveSeconds: "PT5S",
+    thirtySeconds: "PT30S",
+    minute: "PT1M",
+    fiveMinutes: "PT5M",
+    tenMinutes: "PT10M",
+    fifteenMinutes: "PT15M",
+    thirtyMinutes: "PT30M",
+    halfHour: "PT0.5H",
+    hour: "PT1H",
+    sixHours: "PT6H",
+    day: "P1D",
+    week: "P1W",
+    weekStartingSunday: "1969-12-28T00:00:00Z/P1W",
+    weekStartingMonday: "1969-12-29T00:00:00Z/P1W",
+    weekEndingSaturday: "P1W/1970-01-03T00:00:00Z",
+    weekEndingSunday: "P1W/1970-01-04T00:00:00Z",
+    month: "P1M",
+    quarter: "P3M",
+    quarterYear: "P0.25Y",
+    year: "P1Y",
+    seconD:"Second",
+}
+export type TimegrainFilterValues = typeof timegrainFilterValues[keyof typeof timegrainFilterValues]
 
 // range filter values
 // [number | null, number | null]
